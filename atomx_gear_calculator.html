@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AtomX Gear Calculator — Wattbike AtomX ギア・ケイデンス変換ツール</title>
+<style>
+  :root{
+    --ink:#16202b;          /* 本文 */
+    --ink-soft:#5a6a7a;     /* 補助テキスト */
+    --bg:#eef1f4;           /* 背景（クールグレー） */
+    --panel:#ffffff;
+    --line:#d5dce3;
+    --cobalt:#0b4fd6;       /* 主アクセント：パワーメーター青 */
+    --cobalt-soft:#e3ecff;
+    --amber:#c77800;        /* 注意・調整 */
+    --green:#0a7d4f;        /* 一致・OK */
+    --red:#c0392b;
+    --mono:"SFMono-Regular","Consolas","Roboto Mono","Menlo",monospace;
+    --sans:"Helvetica Neue","Hiragino Kaku Gothic ProN","Noto Sans JP",Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px}
+  body{
+    font-family:var(--sans);
+    background:var(--bg);
+    color:var(--ink);
+    line-height:1.55;
+    padding-bottom:4rem;
+  }
+  /* ---------- ヘッダー：サイコン風の帯 ---------- */
+  header{
+    background:var(--ink);
+    color:#fff;
+    padding:1.1rem 1.4rem 1.2rem;
+  }
+  .head-inner{max-width:1060px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:baseline;gap:.6rem 1.2rem}
+  .head-inner h1{
+    font-size:1.25rem;font-weight:700;letter-spacing:.02em;
+  }
+  .head-inner h1 span{color:#8fb4ff;font-family:var(--mono);font-weight:400;font-size:.95rem;margin-left:.5rem}
+  .head-inner p{font-size:.78rem;color:#aab7c4}
+  main{max-width:1060px;margin:1.4rem auto 0;padding:0 1rem;display:grid;gap:1.2rem}
+
+  /* ---------- タブ ---------- */
+  nav.tabs{display:flex;gap:.4rem;flex-wrap:wrap}
+  nav.tabs button{
+    font-family:var(--sans);font-size:.88rem;font-weight:600;
+    padding:.5rem 1rem;border:1px solid var(--line);border-radius:6px 6px 0 0;
+    background:#e2e7ec;color:var(--ink-soft);cursor:pointer;
+  }
+  nav.tabs button[aria-selected="true"]{
+    background:var(--panel);color:var(--cobalt);border-bottom-color:var(--panel);
+  }
+  nav.tabs button:focus-visible{outline:2px solid var(--cobalt);outline-offset:2px}
+
+  section.panel{
+    background:var(--panel);border:1px solid var(--line);border-radius:0 8px 8px 8px;
+    padding:1.3rem 1.3rem 1.5rem;
+  }
+  h2{font-size:1.02rem;font-weight:700;margin-bottom:.9rem}
+  h2 small{font-weight:400;color:var(--ink-soft);font-size:.78rem;margin-left:.5rem}
+
+  /* ---------- 入力 ---------- */
+  .inputs{display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end;margin-bottom:1.1rem}
+  .field{display:flex;flex-direction:column;gap:.25rem}
+  .field label{font-size:.75rem;font-weight:600;color:var(--ink-soft);letter-spacing:.04em}
+  .field input[type=number], .field select{
+    font-family:var(--mono);font-size:1.35rem;padding:.35rem .55rem;
+    width:9.5rem;border:1.5px solid var(--line);border-radius:6px;color:var(--ink);
+    background:#fbfcfd;
+  }
+  .field input:focus-visible,.field select:focus-visible{outline:2px solid var(--cobalt);outline-offset:1px}
+  .unit{font-size:.8rem;color:var(--ink-soft);font-family:var(--mono)}
+  .toggle{display:flex;align-items:center;gap:.45rem;font-size:.82rem;color:var(--ink-soft);cursor:pointer;user-select:none}
+  .toggle input{width:1.05rem;height:1.05rem;accent-color:var(--cobalt)}
+
+  /* ---------- 結果カード ---------- */
+  .result-main{
+    display:flex;flex-wrap:wrap;gap:1rem;align-items:stretch;
+  }
+  .gear-card{
+    flex:0 0 auto;min-width:220px;
+    background:var(--cobalt-soft);border:1.5px solid var(--cobalt);
+    border-radius:8px;padding:1rem 1.2rem;
+  }
+  .gear-card .eyebrow{font-size:.72rem;font-weight:700;letter-spacing:.1em;color:var(--cobalt)}
+  .gear-card .gear-num{
+    font-family:var(--mono);font-size:3.4rem;font-weight:700;color:var(--cobalt);line-height:1.05;
+  }
+  .gear-card .gear-num small{font-size:1rem;font-weight:400;color:var(--ink-soft);margin-left:.3rem}
+  .gear-card .sub{font-size:.85rem;color:var(--ink);margin-top:.3rem}
+  .gear-card .sub b{font-family:var(--mono)}
+  .alt-list{flex:1 1 300px;display:flex;flex-direction:column;gap:.5rem;min-width:260px}
+  .alt{
+    display:flex;align-items:baseline;gap:.8rem;flex-wrap:wrap;
+    border:1px solid var(--line);border-radius:6px;padding:.5rem .8rem;font-size:.86rem;
+  }
+  .alt .g{font-family:var(--mono);font-weight:700;font-size:1.05rem;min-width:5.2rem}
+  .alt .detail{color:var(--ink-soft)}
+  .alt .detail b{font-family:var(--mono);color:var(--ink)}
+  .badge{font-size:.68rem;font-weight:700;padding:.1rem .45rem;border-radius:4px}
+  .badge.ok{background:#e4f4ec;color:var(--green)}
+  .badge.adj{background:#fdf1df;color:var(--amber)}
+  .warn-line{margin-top:.8rem;font-size:.8rem;color:var(--amber)}
+  .err{color:var(--red);font-size:.88rem;margin-top:.4rem}
+
+  /* ---------- ギアラダー（シグネチャ要素） ---------- */
+  .ladder-wrap{margin-top:1.4rem}
+  .ladder-wrap h3{font-size:.85rem;font-weight:700;color:var(--ink-soft);margin-bottom:.4rem}
+  svg#ladder{width:100%;height:auto;display:block}
+  .ladder-note{font-size:.72rem;color:var(--ink-soft);margin-top:.25rem}
+
+  /* ---------- テーブル共通 ---------- */
+  table{border-collapse:collapse;width:100%;font-size:.84rem}
+  th,td{border:1px solid var(--line);padding:.35rem .55rem;text-align:right;font-family:var(--mono)}
+  th{background:#f2f5f8;font-family:var(--sans);font-weight:600;color:var(--ink-soft)}
+  td:first-child,th:first-child{text-align:center}
+  tr.hl td{background:var(--cobalt-soft);font-weight:700}
+  .table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:6px}
+  .table-scroll table{border:none}
+
+  /* ---------- 逆算 ---------- */
+  .rev-out{
+    font-family:var(--mono);font-size:2.2rem;font-weight:700;color:var(--cobalt);
+  }
+  .rev-out small{font-size:1rem;color:var(--ink-soft);font-weight:400}
+  .rev-sub{font-size:.82rem;color:var(--ink-soft);margin-top:.2rem}
+
+  footer{
+    max-width:1060px;margin:2rem auto 0;padding:0 1rem;
+    font-size:.72rem;color:var(--ink-soft);
+  }
+  footer p{margin-bottom:.3rem}
+  @media (max-width:640px){
+    .field input[type=number],.field select{width:7.5rem;font-size:1.15rem}
+    .gear-card .gear-num{font-size:2.6rem}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .gear-card{transition:border-color .2s}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="head-inner">
+    <h1>AtomX Gear Calculator <span>Wattbike AtomX / Gear mode</span></h1>
+    <p>目標パワーとケイデンスから設定ギアを逆引き — Shiraki et al. (2025) <i>Sports Eng</i> 28:18 の変換表に基づく</p>
+  </div>
+</header>
+
+<main>
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="tab-main">ギア逆引き</button>
+    <button role="tab" aria-selected="false" data-tab="tab-rev">パワー計算（ギア→W）</button>
+    <button role="tab" aria-selected="false" data-tab="tab-table">変換表</button>
+  </nav>
+
+  <!-- ============ タブ1: ギア逆引き ============ -->
+  <section class="panel" id="tab-main" role="tabpanel">
+    <h2>目標パワー × 目標ケイデンス → 推奨ギア<small>有効範囲: 40–130 rpm / Gear 1–22</small></h2>
+    <div class="inputs">
+      <div class="field">
+        <label for="inPower">目標パワー</label>
+        <input type="number" id="inPower" value="300" min="10" max="2700" step="5"> <span class="unit">W</span>
+      </div>
+      <div class="field">
+        <label for="inCad">目標ケイデンス</label>
+        <input type="number" id="inCad" value="100" min="40" max="130" step="1"> <span class="unit">rpm</span>
+      </div>
+      <label class="toggle" title="校正器（Lode）基準の真のパワーで目標を指定します。AtomX表示値は校正器より低いため、換算式 Calibrator = 1.042×Ergometer + 9.658 で表示値ベースの目標に変換して計算します。">
+        <input type="checkbox" id="calibToggle">
+        校正器（真値）基準で指定する
+      </label>
+    </div>
+    <div id="mainErr" class="err" hidden></div>
+    <div class="result-main">
+      <div class="gear-card">
+        <div class="eyebrow">RECOMMENDED GEAR</div>
+        <div class="gear-num" id="bestGear">–<small>gear</small></div>
+        <div class="sub" id="bestDetail"></div>
+      </div>
+      <div class="alt-list" id="altList"></div>
+    </div>
+    <div class="warn-line" id="startNote">※ 漕ぎ出し（特に静止スタート）ではペダル加速によりトルクが増幅され、一時的に目標を超えます。プロトコルに応じて目標ケイデンスを 1–5 rpm 下げる調整を推奨（原著 Discussion）。</div>
+
+    <div class="ladder-wrap">
+      <h3>ギアラダー — このケイデンスでの各ギアの予測パワー</h3>
+      <svg id="ladder" viewBox="0 0 1000 300" role="img" aria-label="22ギアの予測パワーを示す棒グラフ"></svg>
+      <div class="ladder-note">横軸: ギア 1–22 ／ 青塗り: 推奨ギア ／ 横線: 目標パワー（表示値ベース）。バーをクリックするとそのギアの詳細を表示します。</div>
+    </div>
+  </section>
+
+  <!-- ============ タブ2: 逆算 ============ -->
+  <section class="panel" id="tab-rev" role="tabpanel" hidden>
+    <h2>ギア × ケイデンス → 予測パワー</h2>
+    <div class="inputs">
+      <div class="field">
+        <label for="revGear">ギア</label>
+        <select id="revGear"></select>
+      </div>
+      <div class="field">
+        <label for="revCad">ケイデンス</label>
+        <input type="number" id="revCad" value="90" min="40" max="130" step="1"> <span class="unit">rpm</span>
+      </div>
+    </div>
+    <div class="rev-out" id="revOut">– <small>W</small></div>
+    <div class="rev-sub" id="revSub"></div>
+  </section>
+
+  <!-- ============ タブ4: 変換表 ============ -->
+  <section class="panel" id="tab-table" role="tabpanel" hidden>
+    <h2>変換表（予測パワー, W）<small>原著 Table 2 の再現＋1 rpm刻み補間に対応</small></h2>
+    <div class="inputs" style="margin-bottom:.8rem">
+      <label class="toggle"><input type="checkbox" id="fineToggle"> 5 rpm刻み → 1 rpm刻み（多項式補間）</label>
+    </div>
+    <div class="table-scroll" style="max-height:520px;overflow-y:auto">
+      <table id="convTable"></table>
+    </div>
+  </section>
+
+  <footer>
+    <p>データソース: Shiraki S, Yamagishi T, Yamashita D (2025) The development of a conversion table and equations for power estimation in Wattbike AtomX cycle ergometer. <i>Sports Engineering</i> 28:18. https://doi.org/10.1007/s12283-025-00501-y（CC BY 4.0）。本ツールは論文Table 2（40–130 rpm × Gear 1–22）にギアごとの3次多項式を再フィットして計算しています。</p>
+    <p>留意点: (1) 実測パワーは表の予測値よりわずかに低い（4台平均 −3.9 ± 1.0 W, −1.1 ± 0.6%）。(2) AtomX表示値は校正器基準より低く（平均 −6.4%）、真値換算はトグルの回帰式（100–1200 Wの範囲で導出）による。(3) 検証は90・110 rpm／100–900 Wで実施されており、範囲外（特に低パワー・極端なケイデンス）は外挿を含む。</p>
+  </footer>
+</main>
+
+<script>
+"use strict";
+/* ===== 原著 Table 2: cadence 40–130 (5刻み) × Gear 1–22 の予測パワー(W) ===== */
+const CAD = [40,45,50,55,60,65,70,75,80,85,90,95,100,105,110,115,120,125,130];
+const TABLE = [ // TABLE[g-1][i] = power at CAD[i]
+[11,12,13,15,17,19,22,24,27,31,35,39,43,48,53,59,65,71,77],
+[12,14,16,18,21,23,27,31,35,39,45,50,56,63,70,77,85,94,104],
+[14,16,18,21,25,29,33,38,43,50,56,64,72,80,90,100,111,123,135],
+[15,18,22,25,30,35,40,47,54,61,70,80,90,101,114,127,141,157,174],
+[17,21,25,30,35,42,49,57,65,75,86,98,112,126,142,159,177,197,219],
+[20,24,29,35,42,49,58,68,79,91,105,120,137,155,175,196,219,245,272],
+[22,27,34,41,49,58,69,81,95,110,126,145,165,188,212,239,268,299,333],
+[25,31,39,47,57,68,81,96,112,131,151,174,198,226,256,288,324,362,403],
+[28,36,44,54,66,79,95,112,132,154,179,206,236,269,305,344,387,433,483],
+[32,40,50,62,76,92,110,131,154,181,210,242,278,317,360,407,459,514,574],
+[36,45,57,71,87,106,127,152,179,210,245,283,325,372,423,478,539,604,675],
+[40,51,65,81,100,121,146,175,207,243,283,328,378,432,492,557,628,705,788],
+[44,57,73,91,113,138,167,200,237,279,326,378,436,499,568,644,727,816,913],
+[49,64,82,103,128,157,190,228,271,319,373,433,500,573,653,741,836,940,1052],
+[55,71,92,116,144,177,215,258,307,363,425,494,570,654,746,846,956,1075,1203],
+[61,79,102,129,162,199,242,291,347,410,481,560,646,742,847,962,1087,1223,1369],
+[67,88,114,144,181,223,272,328,391,462,542,631,730,839,958,1088,1230,1384,1551],
+[74,97,126,161,201,249,304,367,438,519,609,709,821,943,1078,1225,1385,1559,1747],
+[81,107,139,178,223,277,338,409,489,580,681,794,919,1057,1208,1373,1553,1749,1960],
+[89,118,154,197,247,307,376,454,544,645,758,885,1025,1179,1348,1533,1735,1953,2190],
+[97,130,169,217,273,339,416,503,603,716,842,983,1138,1310,1499,1705,1930,2173,2437],
+[106,142,185,238,300,374,458,556,666,791,931,1088,1261,1451,1661,1890,2139,2410,2703]
+];
+
+/* ===== ギアごとに3次多項式を最小二乗フィット (X:cadence, Y:power) ===== */
+function fitCubic(xs, ys){
+  // normal equations: 4x4
+  const n = xs.length;
+  const S = new Array(7).fill(0);   // sum x^k, k=0..6
+  const T = new Array(4).fill(0);   // sum y*x^k, k=0..3
+  for(let i=0;i<n;i++){
+    let xp = 1;
+    for(let k=0;k<=6;k++){ S[k]+=xp; if(k<=3) T[k]+=ys[i]*xp; xp*=xs[i]; }
+  }
+  const A = [
+    [S[0],S[1],S[2],S[3],T[0]],
+    [S[1],S[2],S[3],S[4],T[1]],
+    [S[2],S[3],S[4],S[5],T[2]],
+    [S[3],S[4],S[5],S[6],T[3]]
+  ];
+  // Gaussian elimination with partial pivoting
+  for(let c=0;c<4;c++){
+    let p=c;
+    for(let r=c+1;r<4;r++) if(Math.abs(A[r][c])>Math.abs(A[p][c])) p=r;
+    [A[c],A[p]]=[A[p],A[c]];
+    for(let r=0;r<4;r++){
+      if(r===c) continue;
+      const f=A[r][c]/A[c][c];
+      for(let k=c;k<5;k++) A[r][k]-=f*A[c][k];
+    }
+  }
+  return [A[0][4]/A[0][0], A[1][4]/A[1][1], A[2][4]/A[2][2], A[3][4]/A[3][3]]; // a0..a3
+}
+const COEF = TABLE.map(row => {
+  // 数値安定化のためケイデンスを100で割ってフィット
+  const xs = CAD.map(c=>c/100);
+  return fitCubic(xs, row);
+});
+function powerAt(gear, cad){ // gear:1-22, cad:rpm
+  const c = COEF[gear-1], x = cad/100;
+  return c[0] + c[1]*x + c[2]*x*x + c[3]*x*x*x;
+}
+function cadenceFor(gear, targetW){ // 単調増加を仮定して二分法, 範囲外はnull
+  const lo = powerAt(gear,40), hi = powerAt(gear,130);
+  if(targetW < lo - 0.5 || targetW > hi + 0.5) return null;
+  let a=40, b=130;
+  for(let i=0;i<60;i++){
+    const m=(a+b)/2;
+    (powerAt(gear,m) < targetW) ? a=m : b=m;
+  }
+  return (a+b)/2;
+}
+/* 校正器換算: Calibrator = 1.042 * Ergometer + 9.658 → Ergometer = (Cal - 9.658)/1.042 */
+const calToErgo = w => (w - 9.658)/1.042;
+const ergoToCal = w => 1.042*w + 9.658;
+
+/* ===== 推奨ギア探索 ===== */
+function recommend(targetW, targetCad){
+  const cands = [];
+  for(let g=1; g<=22; g++){
+    const cad = cadenceFor(g, targetW);
+    if(cad===null) continue;
+    cands.push({gear:g, cad, dCad:Math.abs(cad-targetCad), pAtTargetCad:powerAt(g,targetCad)});
+  }
+  cands.sort((a,b)=>a.dCad-b.dCad);
+  return cands;
+}
+
+/* ===== UI: タブ ===== */
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected','false'));
+    btn.setAttribute('aria-selected','true');
+    document.querySelectorAll('section.panel').forEach(s=>s.hidden = (s.id!==btn.dataset.tab));
+  });
+});
+
+/* ===== タブ1: メイン ===== */
+const inPower=document.getElementById('inPower'),
+      inCad=document.getElementById('inCad'),
+      calibToggle=document.getElementById('calibToggle'),
+      bestGearEl=document.getElementById('bestGear'),
+      bestDetail=document.getElementById('bestDetail'),
+      altList=document.getElementById('altList'),
+      mainErr=document.getElementById('mainErr'),
+      ladder=document.getElementById('ladder');
+let selectedGear=null;
+
+function renderMain(){
+  const rawW=parseFloat(inPower.value), cad=parseFloat(inCad.value);
+  mainErr.hidden=true;
+  if(!isFinite(rawW)||!isFinite(cad)) return;
+  if(cad<40||cad>130){ showErr('ケイデンスは 40–130 rpm の範囲で入力してください（変換表の測定範囲）。'); return; }
+  const targetW = calibToggle.checked ? calToErgo(rawW) : rawW; // 表示値ベースの目標
+  if(targetW < powerAt(1,40)-0.5 || targetW > powerAt(22,130)+0.5){
+    showErr('このパワーは Gear 1–22 × 40–130 rpm の範囲では到達できません。'); clearCards(); drawLadder(cad,targetW,null); return;
+  }
+  const cands = recommend(targetW, cad);
+  if(cands.length===0){ showErr('該当するギアが見つかりません。'); clearCards(); drawLadder(cad,targetW,null); return; }
+  const best = cands[0];
+  selectedGear = best.gear;
+  bestGearEl.innerHTML = best.gear + '<small>gear</small>';
+  const cadR = Math.round(best.cad*10)/10;
+  const calNote = calibToggle.checked ? `（表示値目標 ${targetW.toFixed(0)} W ≒ 真値 ${rawW.toFixed(0)} W）` : '';
+  bestDetail.innerHTML =
+    `<b>${cadR}</b> rpm で <b>${targetW.toFixed(0)}</b> W${calNote}<br>` +
+    `${cad} rpm 時の予測: <b>${best.pAtTargetCad.toFixed(0)}</b> W`;
+  // 代替候補（上位3、bestを除く）
+  altList.innerHTML='';
+  cands.slice(1,4).forEach(c=>{
+    const div=document.createElement('div'); div.className='alt';
+    const adj = c.cad - cad;
+    const badge = Math.abs(adj)<=2 ? '<span class="badge ok">±2rpm以内</span>'
+                                   : `<span class="badge adj">${adj>0?'+':''}${adj.toFixed(0)} rpm</span>`;
+    div.innerHTML = `<span class="g">Gear ${c.gear}</span>`+
+      `<span class="detail"><b>${(Math.round(c.cad*10)/10)}</b> rpm で ${targetW.toFixed(0)} W ／ ${cad} rpm では <b>${c.pAtTargetCad.toFixed(0)}</b> W</span> ${badge}`;
+    altList.appendChild(div);
+  });
+  drawLadder(cad, targetW, best.gear);
+}
+function showErr(msg){ mainErr.textContent=msg; mainErr.hidden=false; }
+function clearCards(){ bestGearEl.innerHTML='–<small>gear</small>'; bestDetail.textContent=''; altList.innerHTML=''; selectedGear=null; }
+
+/* ギアラダー描画 */
+function drawLadder(cad, targetW, bestGear){
+  const W=1000, H=300, padL=46, padR=12, padT=14, padB=30;
+  const powers = Array.from({length:22},(_,i)=>powerAt(i+1,cad));
+  const maxP = Math.max(...powers, targetW||0)*1.08;
+  const x = g => padL + (g-1)*(W-padL-padR)/22;
+  const bw = (W-padL-padR)/22 - 6;
+  const y = p => H-padB - p/maxP*(H-padT-padB);
+  let s='';
+  // y軸目盛
+  const step = maxP>1500?500 : maxP>600?200 : 100;
+  for(let p=0;p<=maxP;p+=step){
+    s+=`<line x1="${padL}" y1="${y(p)}" x2="${W-padR}" y2="${y(p)}" stroke="#e2e7ec" stroke-width="1"/>`;
+    s+=`<text x="${padL-6}" y="${y(p)+4}" text-anchor="end" font-size="11" fill="#5a6a7a" font-family="monospace">${p}</text>`;
+  }
+  // バー
+  powers.forEach((p,i)=>{
+    const g=i+1, isBest=(g===bestGear);
+    s+=`<rect data-gear="${g}" x="${x(g)}" y="${y(p)}" width="${bw}" height="${H-padB-y(p)}" rx="2"
+        fill="${isBest?'#0b4fd6':'#c3d2e4'}" style="cursor:pointer"><title>Gear ${g}: ${p.toFixed(0)} W @ ${cad} rpm</title></rect>`;
+    s+=`<text x="${x(g)+bw/2}" y="${H-padB+16}" text-anchor="middle" font-size="11" fill="${isBest?'#0b4fd6':'#5a6a7a'}" font-weight="${isBest?'700':'400'}" font-family="monospace">${g}</text>`;
+  });
+  // 目標ライン
+  if(targetW && targetW<maxP){
+    s+=`<line x1="${padL}" y1="${y(targetW)}" x2="${W-padR}" y2="${y(targetW)}" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="6 4"/>`;
+    s+=`<text x="${W-padR}" y="${y(targetW)-5}" text-anchor="end" font-size="11" fill="#c0392b" font-family="monospace">${targetW.toFixed(0)} W</text>`;
+  }
+  ladder.innerHTML=s;
+  ladder.querySelectorAll('rect[data-gear]').forEach(r=>{
+    r.addEventListener('click',()=>{
+      const g=+r.dataset.gear;
+      const c=cadenceFor(g, targetW);
+      const msg = c===null
+        ? `Gear ${g}: 40–130 rpm では ${targetW.toFixed(0)} W に到達できません（範囲: ${powerAt(g,40).toFixed(0)}–${powerAt(g,130).toFixed(0)} W）。`
+        : `Gear ${g}: ${targetW.toFixed(0)} W には ${(Math.round(c*10)/10)} rpm が必要。${cad} rpm では ${powerAt(g,cad).toFixed(0)} W。`;
+      mainErr.hidden=false; mainErr.style.color='var(--ink-soft)'; mainErr.textContent=msg;
+      setTimeout(()=>{mainErr.style.color='';},0);
+    });
+  });
+}
+[inPower,inCad,calibToggle].forEach(el=>el.addEventListener('input',renderMain));
+
+/* ===== タブ2: 逆算 ===== */
+const revGear=document.getElementById('revGear'), revCad=document.getElementById('revCad'),
+      revOut=document.getElementById('revOut'), revSub=document.getElementById('revSub');
+for(let g=1;g<=22;g++){ const o=document.createElement('option'); o.value=g; o.textContent='Gear '+g; revGear.appendChild(o); }
+revGear.value=11;
+function renderRev(){
+  const g=+revGear.value, cad=parseFloat(revCad.value);
+  if(!isFinite(cad)||cad<40||cad>130){ revOut.innerHTML='– <small>W</small>'; revSub.textContent='ケイデンスは40–130 rpmで入力してください。'; return; }
+  const p=powerAt(g,cad);
+  revOut.innerHTML=`${p.toFixed(0)} <small>W（表示値ベース予測）</small>`;
+  revSub.innerHTML=`実測は平均で約1%低め（−3.9 ± 1.0 W 相当）／ 校正器（真値）換算: 約 <b style="font-family:var(--mono)">${ergoToCal(p).toFixed(0)}</b> W`;
+}
+[revGear,revCad].forEach(el=>el.addEventListener('input',renderRev));
+
+/* ===== タブ3: 変換表 ===== */
+const convTable=document.getElementById('convTable'), fineToggle=document.getElementById('fineToggle');
+function renderConv(){
+  const stepC = fineToggle.checked?1:5;
+  let html='<thead><tr><th>rpm</th>';
+  for(let g=1;g<=22;g++) html+=`<th>G${g}</th>`;
+  html+='</tr></thead><tbody>';
+  for(let c=40;c<=130;c+=stepC){
+    html+=`<tr><td>${c}</td>`;
+    for(let g=1;g<=22;g++) html+=`<td>${Math.round(powerAt(g,c))}</td>`;
+    html+='</tr>';
+  }
+  html+='</tbody>';
+  convTable.innerHTML=html;
+}
+fineToggle.addEventListener('input',renderConv);
+
+/* ===== 初期描画 ===== */
+renderMain(); renderRev(); renderConv();
+</script>
+</body>
+</html>
